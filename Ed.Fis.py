@@ -11,8 +11,6 @@ def ponto_virgula(mensagem = ''):
             num = float(entrada)
             return num
 
-Cadastro_Aluno = {}
-Cadastro_Aluno['Nome'] = input('Digite o Nome do Aluno: ').title()
 
 def calcular_idade():
     
@@ -25,7 +23,6 @@ def calcular_idade():
     return Idade
     #Se possível fazer uma notificação do aniversario do infeliz
 
-Cadastro_Aluno['Idade'] = calcular_idade()
 
 def Sexo():
     while True:
@@ -37,7 +34,6 @@ def Sexo():
         else:
             print('tente novamente')
 
-Cadastro_Aluno['Sexo'] = Sexo() #Lembrar que Sexo vai ser utilizado para fazer um calculo, importante deixá-lo bem marcado
 
 def Peso_do_Cadastrado(Peso_em_Kg = ''):
     while True:
@@ -48,7 +44,6 @@ def Peso_do_Cadastrado(Peso_em_Kg = ''):
         else:
             return Peso_em_Kg
 
-Cadastro_Aluno['Peso'] = Peso_do_Cadastrado()
 
 def Altura_do_Cadastrado(Num = ''):
     while True:
@@ -59,7 +54,6 @@ def Altura_do_Cadastrado(Num = ''):
         else:
             return Altura_em_cm
 
-Cadastro_Aluno['Altura'] = Altura_do_Cadastrado('Digite a altura em metros')
 
 def Circunferencia():
     Cincunferencia_Medidas = {}
@@ -78,7 +72,6 @@ def Circunferencia():
     Cincunferencia_Medidas['Panturrilha_Esqueda'] = ponto_virgula('Diâmetro da Panturrilhaa Esquerda: ')
     return Cincunferencia_Medidas
 
-Cadastro_Aluno['Circunferencia'] = Circunferencia()
 
 def Sete_Dobras():
     Peitoral = ponto_virgula('Medida do Peitoral em milímetros: ')
@@ -91,8 +84,6 @@ def Sete_Dobras():
     medidas = [Peitoral, Triciptal, Subscapular, Axilar_Media, Abdominal, Supra_Iliaca, Coxa]
     return sum(medidas)
 
-Cadastro_Aluno['Sete_Dobras'] = Sete_Dobras()   
-
 
 def Percentual_de_Gordura(Idade, Sete_Dobras, Sexo):
     if Sexo == 'Masculino':
@@ -104,23 +95,28 @@ def Percentual_de_Gordura(Idade, Sete_Dobras, Sexo):
         percentual = ((4.95/Densidade_Corporal) - 450)
         return round(percentual, 2)
 
-Cadastro_Aluno['Percentual_de_Gordura'] = Percentual_de_Gordura(Cadastro_Aluno['Idade'], Cadastro_Aluno['Sete_Dobras'], Cadastro_Aluno['Sexo'])
 
 def Percentual_Residual(Percent_Gordura, Peso_total):
     Massa_Magra = Peso_total - (Peso_total*Percent_Gordura/100)
     return round(Massa_Magra, 2)
 
 
-Cadastro_Aluno['Massa_Magra'] = (Percentual_Residual(Cadastro_Aluno['Percentual_de_Gordura'], Cadastro_Aluno['Peso']))
-
-
 def Massa_Gorda(Peso_total, Massa_Magra ):
     Massa_Gorda = Peso_total - Massa_Magra
     return round(Massa_Gorda, 2)
 
+
+Cadastro_Aluno = {}
+Cadastro_Aluno['Nome'] = input('Digite o Nome do Aluno: ').title()
+Cadastro_Aluno['Idade'] = calcular_idade()
+Cadastro_Aluno['Sexo'] = Sexo() #Lembrar que Sexo vai ser utilizado para fazer um calculo, importante deixá-lo bem marcado
+Cadastro_Aluno['Peso'] = Peso_do_Cadastrado()
+Cadastro_Aluno['Altura'] = Altura_do_Cadastrado('Digite a altura em metros')
+Cadastro_Aluno['Circunferencia'] = Circunferencia()
+Cadastro_Aluno['Sete_Dobras'] = Sete_Dobras()
+Cadastro_Aluno['Percentual_de_Gordura'] = Percentual_de_Gordura(Cadastro_Aluno['Idade'], Cadastro_Aluno['Sete_Dobras'], Cadastro_Aluno['Sexo'])
+Cadastro_Aluno['Massa_Magra'] = (Percentual_Residual(Cadastro_Aluno['Percentual_de_Gordura'], Cadastro_Aluno['Peso']))
 Cadastro_Aluno['Massa_Gorda'] = (Massa_Gorda(Cadastro_Aluno['Peso'], Cadastro_Aluno['Massa_Magra']))
-
-
 
 for chave, valor in Cadastro_Aluno.items():
     if isinstance(valor, dict):
@@ -129,5 +125,3 @@ for chave, valor in Cadastro_Aluno.items():
             print(f'    {Nome}: {Medida}')
     else:
         print(f'{chave}: {valor}')
-
-
