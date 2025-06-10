@@ -1,5 +1,7 @@
 import streamlit as st
 from datetime import datetime, date
+import pandas as pd
+import plotly.graph_objects as go
 
 # Inicialização
 if 'alunos' not in st.session_state:
@@ -114,7 +116,7 @@ elif pagina == "Editar Cadastro":
 
                 st.success(f"Dados de {novo_nome} atualizados com sucesso!")
     else:
-        st.info("Nenhum aluno cadastrado ainda.")
+        st.info("Nenhum aluno cadastrado.")
 
 # ------------------- AVALIAÇÕES --------------------
 elif pagina == "Avaliações":
@@ -124,61 +126,88 @@ elif pagina == "Avaliações":
     if nomes:
         selecionado = st.selectbox("Selecione um aluno", nomes)
         st.subheader(f"Avaliação de {selecionado}")
-        
-        with st.form("avaliacao_form"):
-            data_aval = st.date_input("Data da avaliação", value=datetime.today())
-            
+        with st.expander("📋 Avaliação Física"):
+            with st.form("avaliacao_form"):
+                data_aval = st.date_input("Data da avaliação", value=datetime.today())
+                
+                st.markdown("###")
 
-            st.markdown("#### 📏 Dobras Cutâneas (mm)")
-            dobras = {
-                "Peitoral": st.number_input("Peitoral", min_value=0.0, step=0.1),
-                "Tríceps": st.number_input("Tríceps", min_value=0.0, step=0.1),
-                "Subescapular": st.number_input("Subescapular", min_value=0.0, step=0.1),
-                "Axilar_Media":  st.number_input("Axilar_Media", min_value=0.0, step=0.1),
-                "Abdominal": st.number_input("Abdominal", min_value=0.0, step=0.1),
-                "Supra-ilíaca": st.number_input("Supra-ilíaca", min_value=0.0, step=0.1),
-                "Coxa": st.number_input("Coxa", min_value=0.0, step=0.1)
-            }
-
-
-            st.markdown("#### 📏 Circunferências (cm)")
-            circ = {
-                "Ombro": st.number_input("Ombro", min_value=0.0, step=0.1),
-                "Torax": st.number_input("Torax", min_value=0.0, step=0.1),
-                "Cintura": st.number_input("Cintura", min_value=0.0, step=0.1),
-                "Abdomen": st.number_input("Abdomen", min_value=0.0, step=0.1),
-                "Quadril": st.number_input("Quadril", min_value=0.0, step=0.1),
-                "Braco_Direito": st.number_input("Braco_Direito", min_value=0.0, step=0.1),
-                "Braco_Esquerdo": st.number_input("Braco_Esquerdo", min_value=0.0, step=0.1),
-                "Antebraco_Direito": st.number_input("Antebraco_Direito", min_value=0.0, step=0.1),
-                "Antebraco_Esquerdo": st.number_input("Antebraco_Esquerdo", min_value=0.0, step=0.1),
-                "Coxa_Direita": st.number_input("Coxa_Direita", min_value=0.0, step=0.1),
-                "Coxa_Esquerda": st.number_input("Coxa_Esquerda", min_value=0.0, step=0.1),
-                "Panturrilha_Direita": st.number_input("Panturrilha_Direita", min_value=0.0, step=0.1),
-                "Panturrilha_Esqueda": st.number_input("Panturrilha_Esqueda", min_value=0.0, step=0.1),
-            }
-
-            enviar = st.form_submit_button("Salvar Avaliação")
-            if enviar:
-                nova_aval = {
-                    "data": data_aval.strftime("%d/%m/%Y"),
-                    "dobras": dobras,
-                    "circunferencias": circ
+                st.markdown("#### 📏 Dobras Cutâneas (mm)")
+                dobras = {
+                    "Peitoral": st.number_input("Peitoral", min_value=0.0, step=0.1),
+                    "Tríceps": st.number_input("Tríceps", min_value=0.0, step=0.1),
+                    "Subescapular": st.number_input("Subescapular", min_value=0.0, step=0.1),
+                    "Axilar_Media":  st.number_input("Axilar_Media", min_value=0.0, step=0.1),
+                    "Abdominal": st.number_input("Abdominal", min_value=0.0, step=0.1),
+                    "Supra-ilíaca": st.number_input("Supra-ilíaca", min_value=0.0, step=0.1),
+                    "Coxa": st.number_input("Coxa", min_value=0.0, step=0.1)
                 }
-                st.session_state.avaliacoes.setdefault(selecionado, []).append(nova_aval)
-                st.success("Avaliação registrada com sucesso!")
 
-        # Mostrar avaliações passadas (se houver)
+
+                st.markdown("#### 📏 Circunferências (cm)")
+                circ = {
+                    "Ombro": st.number_input("Ombro", min_value=0.0, step=0.1),
+                    "Torax": st.number_input("Torax", min_value=0.0, step=0.1),
+                    "Cintura": st.number_input("Cintura", min_value=0.0, step=0.1),
+                    "Abdomen": st.number_input("Abdomen", min_value=0.0, step=0.1),
+                    "Quadril": st.number_input("Quadril", min_value=0.0, step=0.1),
+                    "Braco_Direito": st.number_input("Braco_Direito", min_value=0.0, step=0.1),
+                    "Braco_Esquerdo": st.number_input("Braco_Esquerdo", min_value=0.0, step=0.1),
+                    "Antebraco_Direito": st.number_input("Antebraco_Direito", min_value=0.0, step=0.1),
+                    "Antebraco_Esquerdo": st.number_input("Antebraco_Esquerdo", min_value=0.0, step=0.1),
+                    "Coxa_Direita": st.number_input("Coxa_Direita", min_value=0.0, step=0.1),
+                    "Coxa_Esquerda": st.number_input("Coxa_Esquerda", min_value=0.0, step=0.1),
+                    "Panturrilha_Direita": st.number_input("Panturrilha_Direita", min_value=0.0, step=0.1),
+                    "Panturrilha_Esqueda": st.number_input("Panturrilha_Esqueda", min_value=0.0, step=0.1),
+                }
+
+                enviar = st.form_submit_button("Salvar Avaliação")
+                if enviar:
+                    nova_aval = {
+                        "data": data_aval.strftime("%d/%m/%Y"),
+                        "dobras": dobras,
+                        "circunferencias": circ
+                    }
+                    st.session_state.avaliacoes.setdefault(selecionado, []).append(nova_aval)
+                    st.session_state.avaliacoes[selecionado].sort(key=lambda x: datetime.strptime(x["data"], "%d/%m/%Y",))
+                    st.success("Avaliação registrada com sucesso!")
+
+    # --------------avaliações anteriores (se houver)
         if selecionado in st.session_state.avaliacoes:
             st.markdown("### 📂 Avaliações anteriores")
+
+            avaliacoes = st.session_state.avaliacoes[selecionado]
+            total = len(avaliacoes)
+            
             for i, aval in enumerate(st.session_state.avaliacoes[selecionado][::-1], 1):
-                st.markdown(f"**Avaliação {i} - {aval['data']}**")
-                with st.expander("Ver detalhes"):
-                    st.markdown("**Dobras:**")
-                    for k, v in aval["dobras"].items():
-                        st.write(f"{k}: {v} mm")
-                    st.markdown("**Circunferências:**")
-                    for k, v in aval["circunferencias"].items():
-                        st.write(f"{k}: {v} cm")
+                numero_invertido = total - i +1
+                with st.expander(f"**Avaliação {numero_invertido} - {aval['data']}**"):
+                    tab1, tab2 = st.tabs(["Dobras", "Circunferências"])
+
+
+                    with tab1:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            for k, v in aval["dobras"].items():
+                                st.write(f"{k}: {v} mm")
+                        with col2:
+                            # --------------Gráfico--------------
+                            st.markdown("### 📈 Gráficos de Evolução")
+
+
+                    with tab2:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            for k, v in aval["circunferencias"].items():
+                                st.write(f"{k}: {v} cm")
+                        with col2:
+                            # --------------Gráfico--------------
+                            st.markdown("### 📈 Gráficos de Evolução")
+
+
+
+
+
+
     else:
-        st.info("Cadastre pelo menos um aluno para começar.")
+        st.info("Nenhum aluno cadastrado.")
