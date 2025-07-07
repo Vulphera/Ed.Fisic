@@ -54,6 +54,78 @@ def calcular_massa_gorda(Peso_total, Massa_Magra ):
     Massa_Gorda = Peso_total - Massa_Magra
     return round(Massa_Gorda, 2)
 
+def plot_composicao_corporal(idade, sexo, peso_total, dobras, key="grafico"):
+    soma_dobras = sum(dobras.values())
+    percent_gordura = Percentual_de_Gordura(idade, soma_dobras, sexo)
+    massa_magra = calcular_massa_magra(percent_gordura, peso_total)
+    massa_gorda = calcular_massa_gorda(peso_total, massa_magra)
+    residual = percent_residual(peso_total, sexo)
+
+    nomes_massas = ['Massa Magra', 'Massa Gorda', 'Residual']
+    massas = [massa_magra, massa_gorda, residual]
+    cores = ["#b41515", "#dbd70c", "#0059FF"]
+
+    fig = go.Figure(data=[go.Pie(labels=nomes_massas, values=massas, hole=.6, marker=dict(colors=cores))])
+
+    fig.update_layout(
+        title="Composição Corporal",
+        annotations=[
+            dict(
+                text=f"{peso_total} kg",
+                x=0.5, y=0.5,
+                font_size=20,
+                showarrow=False
+            ),
+            dict(
+                text=f"{massa_magra} kg Magra",
+                x=0.02, y=0.5,
+                xanchor='right',
+                font_size=14,
+                showarrow=False
+            )
+        ]
+    )
+
+    st.plotly_chart(fig, use_container_width=True, key=key)
+
+def plot_evolucao_completa(avaliacoes, medidas_selecionadas, selecionado):
+    fig = go.Figure()
+    datas = [datetime.strptime(aval['data'], "%d/%m/%Y") for aval in avaliacoes]
+
+    for medida in medidas_selecionadas:
+        valores = []
+        unidade = ""
+
+        # Peso
+        if medida == "Peso":
+            valores = [aval['peso'] for aval in avaliacoes]
+            unidade = "kg"
+
+        # Altura
+        elif medida == "Altura":
+            valores = [aval['altura'] for aval in avaliacoes]
+            unidade = "m"
+
+        # Dobras
+        elif medida in avaliacoes[0]['dobras']:
+            valores = [aval['dobras'][medida] for aval in avaliacoes]
+            unidade = "mm"
+
+        # Circunferências
+        elif medida in avaliacoes[0]['circunferencias']:
+            valores = [aval['circunferencias'][medida] for aval in avaliacoes]
+            unidade = "cm"
+
+        # Adiciona linha ao gráfico se encontrou valores
+        if valores:
+            fig.add_trace(go.Scatter(x=datas, y=valores, mode='lines+markers', name=f"{medida} ({unidade})"))
+
+    fig.update_layout(title=f"Evolução das Medidas de {selecionado}",
+                      xaxis_title="Data", yaxis_title="Valor",
+                      hovermode="x unified")
+
+    st.plotly_chart(fig, use_container_width=True)
+
 # ------------------- SIDEBAR --------------------
 pagina = st.sidebar.radio("Navegação", ["Cadastro", "Editar Cadastro", "Avaliações", "Prescrição de Treinos", ])
 
@@ -130,26 +202,46 @@ elif pagina == "Editar Cadastro":
             nova_data = st.date_input("Data de nascimento", datetime.strptime(aluno["Data de nascimento"], "%d/%m/%Y"))
             novo_sexo = st.radio("Sexo", ["Masculino", "Feminino"], index=["Masculino", "Feminino"].index(aluno["Sexo"]))
 
+            col_editar, col_excluir = st.columns(2)
+            with col_editar:
+                salvar = st.form_submit_button("💾 Salvar")
+            with col_excluir:
+                excluir = st.form_submit_button("❌ Excluir")
 
-            salvar = st.form_submit_button("Salvar alterações")
             if salvar:
                 nova_idade = calcular_idade(nova_data)
-
                 if novo_nome != selecionado:
-                    del st.session_state.alunos[selecionado]
+                    # Atualiza nome do aluno e mantém as avaliações
+                    st.session_state.alunos[novo_nome] = st.session_state.alunos.pop(selecionado)
                     if selecionado in st.session_state.avaliacoes:
                         st.session_state.avaliacoes[novo_nome] = st.session_state.avaliacoes.pop(selecionado)
 
+                # Atualiza dados
                 st.session_state.alunos[novo_nome] = {
                     "Data de nascimento": nova_data.strftime("%d/%m/%Y"),
                     "Idade": nova_idade,
                     "Sexo": novo_sexo,
-
                 }
 
                 st.success(f"Dados de {novo_nome} atualizados com sucesso!")
+
+            if excluir:
+                confirma = st.text_input("Digite o nome do aluno para confirmar exclusão", key="confirma_excluir")
+                if confirma == selecionado:
+                    del st.session_state.alunos[selecionado]
+                    if selecionado in st.session_state.avaliacoes:
+                        del st.session_state.avaliacoes[selecionado]
+
+                    st.success("Cadastro excluído com sucesso!")
+                    st.stop()
+                elif confirma == "":
+                    st.warning("Por favor, digite o nome do aluno para confirmar a exclusão.")
+                else:
+                    st.warning("Nome digitado incorretamente para exclusão. Tente novamente.")
+
     else:
         st.info("Nenhum aluno cadastrado.")
+
 
 # ------------------- AVALIAÇÕES --------------------
 elif pagina == "Avaliações":
@@ -223,9 +315,6 @@ elif pagina == "Avaliações":
                 with st.expander(f"**Avaliação {numero_invertido} - {aval['data']}**"):
                     tab0 ,tab1, tab2, tab3 = st.tabs(["Dobras", "Circunferências", "Peso e Altura", "Editar"])
 
-
-
-
                     with tab0:
                         col1, col2 = st.columns(2)
                         with col1:
@@ -239,47 +328,8 @@ elif pagina == "Avaliações":
                             sexo = st.session_state.alunos[selecionado]["Sexo"]
                             peso_total = aval["peso"]
                             soma_dobras = sum(aval["dobras"].values())
-                             # Cálculos
-                            percent_gordura = Percentual_de_Gordura(idade, soma_dobras, sexo)
-                            massa_magra = calcular_massa_magra(percent_gordura, peso_total)
-                            massa_gorda = calcular_massa_gorda(peso_total, massa_magra)
-                            residual = percent_residual(peso_total, sexo)
-
-                            # Preparando dados para o gráfico
-                            nomes_massas = ['Massa Magra', 'Massa Gorda', 'Residual']
-                            massas = [massa_magra, massa_gorda, residual]
-
-
-                            # Cores personalizadas
-                            cores = ["#b41515", "#dbd70c", "#0059FF"]
-
-                            # Criação do gráfico
-                            fig2 = go.Figure(data=[go.Pie(labels=nomes_massas, values=massas, hole=.6, marker=dict(colors=cores))])
-
-                            # Adicionando título central (peso total) e anotações laterais (percentuais)
-                            fig2.update_layout(
-                                title="Composição Corporal",
-                                annotations=[
-                                    dict(
-                                        text=f"{peso_total} kg",
-                                        x=0.5, y=0.5,
-                                        font_size=20,
-                                        showarrow=False
-                                    ),
-
-                                    dict(
-                                        text=f"{massa_magra} kg Magra",
-                                        x=0.02, y=0.5,
-                                        xanchor='right',
-                                        font_size=14,
-                                        showarrow=False
-                                    )
-                                ]
-                            )
-
-                            # Exibição
-                            st.plotly_chart(fig2, use_container_width=True)
-
+                            
+                            plot_composicao_corporal(idade, sexo, peso_total, aval["dobras"], key=f"grafico_em_dobras_{i}")
 
                     with tab1:
                         col1, col2 = st.columns(2)
@@ -288,10 +338,14 @@ elif pagina == "Avaliações":
                                 st.write(f"{k}: {v} cm")
                         with col2:
                             # --------------Gráfico--------------
-                            st.markdown("### 📈 tentar mostrar um bonequinho mostrando os pontos apontados, ou grafico anterior")
+                            st.markdown("### 📈 Composição Corporal")
 
-                    with tab3:
-                        st.write("Inserir forma de editar esta célula")
+                            idade = calcular_idade(datetime.strptime(st.session_state.alunos[selecionado]["Data de nascimento"], "%d/%m/%Y"))
+                            sexo = st.session_state.alunos[selecionado]["Sexo"]
+                            peso_total = aval["peso"]
+                            soma_dobras = sum(aval["dobras"].values())
+                            
+                            plot_composicao_corporal(idade, sexo, peso_total, aval["dobras"], key=f"grafico_em_circunferencia_{i}")                            
 
                     with tab2:
                         col1, col2 = st.columns(2)
@@ -301,8 +355,53 @@ elif pagina == "Avaliações":
                             st.write(f"Peso: {aval['peso']}Kg")
                             st.write(f"Altura: {aval['altura']}m")
 
+                    with tab3:
+                        st.markdown("### ✏️ Editar Avaliação")
+
+                        with st.form(f"editar_form_{i}"):
+                            # Campos de edição com valores atuais
+                            novo_peso = st.number_input("Peso (kg)", value=aval['peso'], min_value=0.0, step=0.1, key=f"peso_{i}")
+                            nova_altura = st.number_input("Altura (m)", value=aval['altura'], min_value=0.0, step=0.01, key=f"altura_{i}")
+
+                            st.markdown("#### 📏 Dobras Cutâneas (mm)")
+                            novas_dobras = {}
+                            for k, v in aval["dobras"].items():
+                                novas_dobras[k] = st.number_input(f"{k}", value=v, min_value=0.0, step=0.1, key=f"dobras_{k}_{i}")
+
+                            st.markdown("#### 📏 Circunferências (cm)")
+                            novas_circ = {}
+                            for k, v in aval["circunferencias"].items():
+                                novas_circ[k] = st.number_input(f"{k}", value=v, min_value=0.0, step=0.1, key=f"circ_{k}_{i}")
+
+                            col_editar, col_excluir = st.columns(2)
+                            with col_editar:
+                                salvar_editar = st.form_submit_button("💾 Salvar")
+                            with col_excluir:
+                                excluir = st.form_submit_button("❌ Excluir")
+
+                            if salvar_editar:
+                                # Atualiza avaliação existente
+                                aval['peso'] = novo_peso
+                                aval['altura'] = nova_altura
+                                aval['dobras'] = novas_dobras
+                                aval['circunferencias'] = novas_circ
+                                st.success("Avaliação atualizada com sucesso!")
+
+                            if excluir:
+                                # Exclui avaliação do aluno
+                                st.session_state.avaliacoes[selecionado].remove(aval)
+                                st.success("Avaliação excluída com sucesso!\nClique em Salvar para sair desta tela")
+                                st.stop()
+
             st.markdown("### 📈 Evolução do aluno")
 
+            avaliacoes = st.session_state.avaliacoes[selecionado]
+            avaliacoes = sorted(avaliacoes, key=lambda x: datetime.strptime(x["data"], "%d/%m/%Y"))
+
+            medidas_disponiveis = ["Peso", "Altura"] + list(avaliacoes[0]["dobras"].keys()) + list(avaliacoes[0]["circunferencias"].keys())
+            medidas_selecionadas = st.multiselect("Selecione as medidas para mostrar no gráfico", medidas_disponiveis, default=["Peso"])
+
+            plot_evolucao_completa(avaliacoes, medidas_selecionadas, selecionado)
 
     else:
         st.info("Nenhum aluno cadastrado.")
@@ -380,4 +479,4 @@ elif pagina == "Prescrição de Treinos":
             cadastro_treino(c)
 
 
-#elif pagina = ""
+#elif pagina == "Idiomas"
