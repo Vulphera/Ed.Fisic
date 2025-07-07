@@ -27,7 +27,14 @@ def calcular_idade(data_nasc):
         idade -= 1
     return idade
 
+def percent_residual(peso_total, sexo):
+    if sexo == "Masculino":
+        perpercentual_de_massa_residual = 0.24
+    elif sexo =="Feminino":
+        perpercentual_de_massa_residual = 0.2
 
+    massa_residual = peso_total * perpercentual_de_massa_residual
+    return massa_residual
 
 def Percentual_de_Gordura(Idade, Sete_Dobras, Sexo):
     if Sexo == 'Masculino':
@@ -39,19 +46,16 @@ def Percentual_de_Gordura(Idade, Sete_Dobras, Sexo):
         percentual = ((4.95/Densidade_Corporal) - 450)
         return round(percentual, 2)
 
-
-def Percentual_Residual(Percent_Gordura, Peso_total):
-    Massa_Magra = Peso_total - (Peso_total*Percent_Gordura/100)
+def calcular_massa_magra(Percent_Gordura, Peso_total):
+    Massa_Magra = Peso_total - (Peso_total*(Percent_Gordura/100))
     return round(Massa_Magra, 2)
 
-
-def Massa_Gorda(Peso_total, Massa_Magra ):
+def calcular_massa_gorda(Peso_total, Massa_Magra ):
     Massa_Gorda = Peso_total - Massa_Magra
     return round(Massa_Gorda, 2)
 
-
 # ------------------- SIDEBAR --------------------
-pagina = st.sidebar.radio("Navegação", ["Cadastro", "Editar Cadastro", "Avaliações"])
+pagina = st.sidebar.radio("Navegação", ["Cadastro", "Editar Cadastro", "Avaliações", "Prescrição de Treinos", ])
 
 # ------------------- CADASTRO --------------------
 if pagina == "Cadastro":
@@ -66,8 +70,24 @@ if pagina == "Cadastro":
             format="DD/MM/YYYY"
 )
         sexo = st.radio("Sexo", ["Masculino", "Feminino"])
-        peso = st.number_input("Peso (kg)", min_value=0.0, step=0.1)
-        altura = st.number_input("Altura (m)", min_value=0.0, step=0.01)
+
+        doenca_cardiaca = st.radio("Doença Cardíaca?", ["Não", "Sim"])
+        pressao = st.radio("Pressão alta ou baixa?", ["Normal", "Alta", "Baixa"])        
+        experiencia = st.radio("Sedentário ou Experiente em modalidades", ["Sedentário", "Pratica Atividades Físicas"])
+        colesterol = st.radio("Colesterol Alto ou Baixo?", ["Nenhum", "Colesterol Alto", "Colesterol Baixo"])
+        diabete = st.radio("Diabético?", ["Não Diabético", "Diabético"])
+
+        fuma = st.radio("Fumante?", ["Não fumante", "Fumante"])
+        alcool = st.radio("Consumo de álcool:", ["Não consome álcool", "Casualmente", "Frequentemente"])
+        sono = st.radio("Qualidade do sono", ["Bom", "Regular", "Ruim"])
+
+        alimentacao = st.radio("Restrição alimentar ou plano nutricional?", ["Não", "Sim"])
+        tipo_alimentacao = st.text_input("Qual tipo de restrição ou plano nutricional?").strip()
+
+        lesao = st.radio("Lesão em articulação ou ligamento?", ["Não", "Sim"])
+        tipo_lesao = st.text_input("Qual tipo de lesão?").strip()
+
+
         enviar = st.form_submit_button("Cadastrar")
 
         if enviar:
@@ -76,9 +96,24 @@ if pagina == "Cadastro":
                 "Data de nascimento": data_nasc.strftime("%d/%m/%Y"),
                 "Idade": idade,
                 "Sexo": sexo,
-                "Peso": peso,
-                "Altura": altura
+                "Doença Cardíaca": doenca_cardiaca,
+                "Pressão": pressao,
+                "Experiência": experiencia,
+                "Colesterol": colesterol,
+                "Diabético": diabete,
+
+                "Fumante": fuma,
+                "Bebe": alcool,
+                "Sono": sono,
+
+                "Alimentação": alimentacao,
+                "Tipo de Alimentação": tipo_alimentacao,
+
+                "Lesão": lesao,
+                "Tipo de Lesão": tipo_lesao,
+                
             }
+
             st.success(f"{nome} cadastrado com sucesso!")
 
 # ------------------- EDITAR --------------------
@@ -94,8 +129,7 @@ elif pagina == "Editar Cadastro":
             novo_nome = st.text_input("Nome", value=selecionado).title()
             nova_data = st.date_input("Data de nascimento", datetime.strptime(aluno["Data de nascimento"], "%d/%m/%Y"))
             novo_sexo = st.radio("Sexo", ["Masculino", "Feminino"], index=["Masculino", "Feminino"].index(aluno["Sexo"]))
-            novo_peso = st.number_input("Peso (kg)", value=aluno["Peso"], step=0.1)
-            nova_altura = st.number_input("Altura (m)", value=aluno["Altura"], step=0.01)
+
 
             salvar = st.form_submit_button("Salvar alterações")
             if salvar:
@@ -110,8 +144,7 @@ elif pagina == "Editar Cadastro":
                     "Data de nascimento": nova_data.strftime("%d/%m/%Y"),
                     "Idade": nova_idade,
                     "Sexo": novo_sexo,
-                    "Peso": novo_peso,
-                    "Altura": nova_altura
+
                 }
 
                 st.success(f"Dados de {novo_nome} atualizados com sucesso!")
@@ -130,7 +163,11 @@ elif pagina == "Avaliações":
             with st.form("avaliacao_form"):
                 data_aval = st.date_input("Data da avaliação", value=datetime.today())
                 
-                st.markdown("###")
+                
+                peso = st.number_input("Peso (kg)", min_value=0.0, step=0.1)
+
+                altura = st.number_input("Altura (m)", min_value=0.0, step=0.01)
+
 
                 st.markdown("#### 📏 Dobras Cutâneas (mm)")
                 dobras = {
@@ -165,6 +202,8 @@ elif pagina == "Avaliações":
                 if enviar:
                     nova_aval = {
                         "data": data_aval.strftime("%d/%m/%Y"),
+                        "peso": peso,
+                        "altura": altura,
                         "dobras": dobras,
                         "circunferencias": circ
                     }
@@ -182,32 +221,163 @@ elif pagina == "Avaliações":
             for i, aval in enumerate(st.session_state.avaliacoes[selecionado][::-1], 1):
                 numero_invertido = total - i +1
                 with st.expander(f"**Avaliação {numero_invertido} - {aval['data']}**"):
-                    tab1, tab2 = st.tabs(["Dobras", "Circunferências"])
+                    tab0 ,tab1, tab2, tab3 = st.tabs(["Dobras", "Circunferências", "Peso e Altura", "Editar"])
 
 
-                    with tab1:
+
+
+                    with tab0:
                         col1, col2 = st.columns(2)
                         with col1:
                             for k, v in aval["dobras"].items():
                                 st.write(f"{k}: {v} mm")
                         with col2:
                             # --------------Gráfico--------------
-                            st.markdown("### 📈 Gráficos de Evolução")
+                            st.markdown("### 📈 Composição Corporal")
+
+                            idade = calcular_idade(datetime.strptime(st.session_state.alunos[selecionado]["Data de nascimento"], "%d/%m/%Y"))
+                            sexo = st.session_state.alunos[selecionado]["Sexo"]
+                            peso_total = aval["peso"]
+                            soma_dobras = sum(aval["dobras"].values())
+                             # Cálculos
+                            percent_gordura = Percentual_de_Gordura(idade, soma_dobras, sexo)
+                            massa_magra = calcular_massa_magra(percent_gordura, peso_total)
+                            massa_gorda = calcular_massa_gorda(peso_total, massa_magra)
+                            residual = percent_residual(peso_total, sexo)
+
+                            # Preparando dados para o gráfico
+                            nomes_massas = ['Massa Magra', 'Massa Gorda', 'Residual']
+                            massas = [massa_magra, massa_gorda, residual]
 
 
-                    with tab2:
+                            # Cores personalizadas
+                            cores = ["#b41515", "#dbd70c", "#0059FF"]
+
+                            # Criação do gráfico
+                            fig2 = go.Figure(data=[go.Pie(labels=nomes_massas, values=massas, hole=.6, marker=dict(colors=cores))])
+
+                            # Adicionando título central (peso total) e anotações laterais (percentuais)
+                            fig2.update_layout(
+                                title="Composição Corporal",
+                                annotations=[
+                                    dict(
+                                        text=f"{peso_total} kg",
+                                        x=0.5, y=0.5,
+                                        font_size=20,
+                                        showarrow=False
+                                    ),
+
+                                    dict(
+                                        text=f"{massa_magra} kg Magra",
+                                        x=0.02, y=0.5,
+                                        xanchor='right',
+                                        font_size=14,
+                                        showarrow=False
+                                    )
+                                ]
+                            )
+
+                            # Exibição
+                            st.plotly_chart(fig2, use_container_width=True)
+
+
+                    with tab1:
                         col1, col2 = st.columns(2)
                         with col1:
                             for k, v in aval["circunferencias"].items():
                                 st.write(f"{k}: {v} cm")
                         with col2:
                             # --------------Gráfico--------------
-                            st.markdown("### 📈 Gráficos de Evolução")
+                            st.markdown("### 📈 tentar mostrar um bonequinho mostrando os pontos apontados, ou grafico anterior")
 
+                    with tab3:
+                        st.write("Inserir forma de editar esta célula")
 
+                    with tab2:
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.markdown("#### Informações iniciais")
+                            
+                            st.write(f"Peso: {aval['peso']}Kg")
+                            st.write(f"Altura: {aval['altura']}m")
 
-
+            st.markdown("### 📈 Evolução do aluno")
 
 
     else:
         st.info("Nenhum aluno cadastrado.")
+
+# --------------------PRESCRIÇÂO DE TREINOS --------------------------
+
+elif pagina == "Prescrição de Treinos":
+    nomes = list(st.session_state.alunos.keys())
+
+    if nomes:
+        selecionado = st.selectbox("Selecione um aluno", nomes)
+
+        st.title("💪 Prescrição de treinos")
+
+#--------------------Dados do Aluno------------------------
+        st.markdown("### 📋 Dados do Aluno")
+        dados_aluno = st.session_state.alunos[selecionado]
+
+        idade = dados_aluno.get("Idade", "Não informado")
+        sexo = dados_aluno.get("Sexo", "Não informado")
+        st.write(f"**Idade:** {idade} anos")
+        st.write(f"**Sexo:** {sexo}")
+
+
+        st.markdown("### 🗓 Duração de treino")
+        data_inicio = st.date_input(
+            "Data de Inicio",
+            value=date.today(),
+            min_value=date(2025, 1, 1),
+            max_value=date(2100, 1, 1),
+            format="DD/MM/YYYY"
+    )
+        data_fim = st.date_input(
+            "Data de Término",
+            value=date.today(),
+            min_value=date(2025, 1, 1),
+            max_value=date(2100, 1, 1),
+            format="DD/MM/YYYY"
+    )
+        st.markdown("### Cadastro de treino")
+
+
+        #-------------------------- Tabela de Treinos -----------------------------------
+
+        def cadastro_treino(c):
+
+            col0, col1, col2, col3, col4 = st.columns(5)
+
+
+            with col0:
+                st.markdown("Tipo de treino")
+            with col1:
+                st.selectbox(
+                    f"Exercício {c}",
+                    ["Leg press", "Agachamento livre", "Extensora", "Flexora"],
+                    key=f"treino_selectbox_{c}"
+                )
+
+            with col2:
+                st.number_input("Séries", min_value=0, step=1, key=f"series_{c}")
+
+            with col3:
+                st.number_input("Repetição", min_value=0, step=1, key=f"repeticao_{c}")
+
+            with col4:
+                st.number_input("Descanso", min_value=0, max_value=5, step=1, key=f"descanso_{c}")
+
+            st.text_input("Observações", key=f"descricao_{c}")
+
+        # Número de treinos
+        numero_de_treinos = st.number_input("Qual o número de treinos?", min_value=0, step=1, format="%d")
+        numero_de_treinos = int(numero_de_treinos)
+
+        for c in range(1, numero_de_treinos + 1):
+            cadastro_treino(c)
+
+
+#elif pagina = ""
